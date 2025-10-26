@@ -1,0 +1,9 @@
+{
+  "name": "universe-sp100",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "update": "node fetch-sp100.mjs"
+  },
+  "dependencies": {}
+}
