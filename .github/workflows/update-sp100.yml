@@ -1,0 +1,19 @@
+name: Update SP100
+on:
+  schedule:
+    - cron: "0 12 * * 1-5"   # 08:00 ET on weekdays (12:00 UTC; adjust for DST if needed)
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci || true
+      - run: npm run update
+        env:
+          SOURCE_URL: ${{ secrets.SOURCE_URL }}
+      - run: git push
