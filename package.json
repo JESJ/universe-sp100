@@ -1,7 +1,7 @@
 {
   "type": "module",
   "scripts": {
-    "build:sp100": "node scripts/build-sp100.js"
+    "build:sp100": "node scripts/build-sp100.js > public/sp100.json"
   },
   "dependencies": {
     "axios": "^1.7.4",
