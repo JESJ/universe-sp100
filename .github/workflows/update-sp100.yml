@@ -37,18 +37,12 @@ jobs:
           test -f scripts/build-sp100.js || { echo "scripts/build-sp100.js not found"; exit 1; }
           test -d public || mkdir -p public
 
-      - name: Build sp100.json (debug)
-        env:
-          NODE_OPTIONS: --unhandled-rejections=strict --trace-uncaught
-        run: |
-          set -xe
-          node -v
-          npm -v
-          ls -la
-          time node scripts/build-sp100.js 2>&1 | tee build-log.txt
-          echo "Exit code: ${PIPESTATUS[0]}"
-          test -f public/sp100.json && { echo "Output size:"; wc -c public/sp100.json; head -c 400 public/sp100.json || true; echo; }
-          exit ${PIPESTATUS[0]}
+      - name: Build sp100.json (with retry)
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 4
+          timeout_minutes: 5
+          command: node scripts/build-sp100.js
 
       - name: Validate JSON
         run: jq -e 'type=="array" and length>0 and all(.[]; type=="string")' < public/sp100.json >/dev/null
