@@ -4,9 +4,14 @@ import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import pRetry from 'p-retry';
+
 
 const WIKI_URL = 'https://en.wikipedia.org/wiki/S%26P_100';
 const OUT_PATH = path.resolve('public/sp100.json');
+
+const run = () => import('./build-sp100.js').then(m => m.default?.() ?? m());
+await pRetry(() => run(), { retries: 3 });
 
 function cleanSymbol(raw) {
   if (!raw) return null;
