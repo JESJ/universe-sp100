@@ -5,7 +5,7 @@ on:
   schedule:
     - cron: "15 11 * * 1-5"   # 11:15 UTC weekdays
   push:
-    branches: [ main ]        # allow runs on pushes too
+    branches: [ main ]
 
 permissions:
   contents: write
@@ -37,14 +37,13 @@ jobs:
           test -f scripts/build-sp100.js || { echo "scripts/build-sp100.js not found"; exit 1; }
           test -d public || mkdir -p public
 
-      - name: Build sp100.json (debug, with log)
-        run: |
-          set -xeuo pipefail
-          node -v
-          time node scripts/build-sp100.js 2>&1 | tee build-log.txt
-          code=${PIPESTATUS[0]}
-          echo "EXIT_CODE=$code"
-          exit $code
+      - name: Build sp100.json (with retry + log)
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 4
+          retry_wait_seconds: 10
+          command: bash -lc 'set -xeuo pipefail; NODE_OPTIONS="--unhandled-rejections=strict --trace-uncaught" node scripts/build-sp100.js 2>&1 | tee build-log.txt'
+          on_retry_command: bash -lc 'echo "--- RETRY DUMP ---"; tail -n +1 build-log.txt || true'
 
       - name: Upload build log
         if: always()
