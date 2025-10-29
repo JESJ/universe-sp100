@@ -1,0 +1,70 @@
+name: Update SP100 daily
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 11 * * 1-5"   # 11:15 UTC weekdays
+  push:
+    branches: [ main ]        # allow runs on pushes too
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sp100-refresh
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Sanity check project
+        run: |
+          test -f scripts/build-sp100.js || { echo "scripts/build-sp100.js not found"; exit 1; }
+          test -d public || mkdir -p public
+
+      - name: Build sp100.json (with retry)
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 4
+          timeout_minutes: 5
+          command: node scripts/build-sp100.js
+
+      - name: Validate JSON
+        run: jq -e 'type=="array" and length>0 and all(.[]; type=="string")' < public/sp100.json >/dev/null
+
+      - name: Commit if changed
+        run: |
+          set -e
+          if git diff --quiet HEAD -- public/sp100.json; then
+            echo "No changes in public/sp100.json."
+            exit 0
+          fi
+          git config user.name  "sp100-bot"
+          git config user.email "sp100-bot@users.noreply.github.com"
+          git add public/sp100.json
+          git commit -m "chore: refresh sp100.json [skip ci]"
+          git pull --rebase
+          git push
+
+      - name: Upload sp100.json artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sp100.json
+          path: public/sp100.json
+          retention-days: 5
