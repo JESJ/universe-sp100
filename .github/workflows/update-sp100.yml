@@ -37,12 +37,21 @@ jobs:
           test -f scripts/build-sp100.js || { echo "scripts/build-sp100.js not found"; exit 1; }
           test -d public || mkdir -p public
 
-      - name: Build sp100.json (with retry)
-        uses: nick-fields/retry@v3
+      - name: Build sp100.json (debug, with log)
+        run: |
+          set -xeuo pipefail
+          node -v
+          time node scripts/build-sp100.js 2>&1 | tee build-log.txt
+          code=${PIPESTATUS[0]}
+          echo "EXIT_CODE=$code"
+          exit $code
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          max_attempts: 4
-          timeout_minutes: 5
-          command: node scripts/build-sp100.js
+          name: build-log
+          path: build-log.txt
 
       - name: Validate JSON
         run: jq -e 'type=="array" and length>0 and all(.[]; type=="string")' < public/sp100.json >/dev/null
