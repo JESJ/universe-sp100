@@ -3,7 +3,7 @@ name: Update SP100 daily
 on:
   workflow_dispatch:
   schedule:
-    - cron: "15 11 * * 1-5"   # 11:15 UTC weekdays
+    - cron: "15 11 * * 1-5"
   push:
     branches: [ main ]
 
@@ -18,24 +18,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
       - name: Install deps
         run: npm ci
-
-      - name: Sanity check project
-        run: |
-          test -f scripts/build-sp100.js || { echo "scripts/build-sp100.js not found"; exit 1; }
-          test -d public || mkdir -p public
 
       - name: Build sp100.json (single run, with log)
         run: |
@@ -47,13 +39,6 @@ jobs:
           code=${PIPESTATUS[0]}
           echo "EXIT_CODE=$code" | tee -a build-log.txt
           exit $code
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build-log.txt
 
       - name: Validate JSON
         run: jq -e 'type=="array" and length>0 and all(.[]; type=="string")' < public/sp100.json >/dev/null
@@ -72,10 +57,9 @@ jobs:
           git pull --rebase
           git push
 
-      - name: Upload sp100.json artifact
+      - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sp100.json
-          path: public/sp100.json
-          retention-days: 5
+          name: build-log
+          path: build-log.txt
