@@ -37,24 +37,16 @@ jobs:
           test -f scripts/build-sp100.js || { echo "scripts/build-sp100.js not found"; exit 1; }
           test -d public || mkdir -p public
 
-      - name: Build sp100.json (with retry + log)
-        uses: nick-fields/retry@v3
-        with:
-          max_attempts: 4
-          timeout_minutes: 5
-          retry_wait_seconds: 10
-          command: >
-            bash -lc 'set -xeuo pipefail;
-            : > build-log.txt;
-            echo "=== ATTEMPT $(date -Is)" | tee -a build-log.txt;
-            NODE_OPTIONS="--unhandled-rejections=strict --trace-uncaught"
-            node scripts/build-sp100.js >> build-log.txt 2>&1;
-            code=$?;
-            echo "EXIT_CODE=$code" | tee -a build-log.txt;
-            exit $code'
-          on_retry_command: >
-            bash -lc 'echo "--- RETRY DUMP ---";
-            tail -n +1 build-log.txt || true'
+      - name: Build sp100.json (single run, with log)
+        run: |
+          set -xeuo pipefail
+          : > build-log.txt
+          echo "=== START $(date -Is)" | tee -a build-log.txt
+          NODE_OPTIONS="--unhandled-rejections=strict --trace-uncaught" \
+          node scripts/build-sp100.js 2>&1 | tee -a build-log.txt
+          code=${PIPESTATUS[0]}
+          echo "EXIT_CODE=$code" | tee -a build-log.txt
+          exit $code
 
       - name: Upload build log
         if: always()
